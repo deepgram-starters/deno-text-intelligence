@@ -169,34 +169,63 @@ async function handleAnalysis(req: Request): Promise<Response> {
     }
 
     // Extract query parameters for intelligence features
-    const options: Record<string, unknown> = {};
+    const options: Record<string, unknown> = {
+      language: url.searchParams.get("language") || "en"
+    };
 
     const summarize = url.searchParams.get("summarize");
-    if (summarize) options.summarize = summarize;
-
-    const topics = url.searchParams.get("topics");
-    if (topics) options.topics = topics === "true";
-
-    const sentiment = url.searchParams.get("sentiment");
-    if (sentiment) options.sentiment = sentiment === "true";
-
-    const intents = url.searchParams.get("intents");
-    if (intents) options.intents = intents === "true";
-
-    const language = url.searchParams.get("language");
-    if (language) options.language = language;
-
-    // Send analysis request to Deepgram
-    let response;
-    if (text) {
-      response = await deepgram.read.analyzeText({ text }, options);
-    } else {
-      response = await deepgram.read.analyzeUrl({ url: textUrl }, options);
+    if (summarize === "true") {
+      options.summarize = true;
+    } else if (summarize === "v2") {
+      options.summarize = "v2";
+    } else if (summarize === "v1") {
+      // v1 is no longer supported
+      return new Response(
+        JSON.stringify({
+          error: {
+            type: "validation_error",
+            code: "INVALID_TEXT",
+            message: "Summarization v1 is no longer supported. Please use v2 or true.",
+            details: {},
+          },
+        }),
+        { status: 400, headers }
+      );
     }
 
-    // Return results
+    const topics = url.searchParams.get("topics");
+    if (topics === "true") options.topics = true;
+
+    const sentiment = url.searchParams.get("sentiment");
+    if (sentiment === "true") options.sentiment = true;
+
+    const intents = url.searchParams.get("intents");
+    if (intents === "true") options.intents = true;
+
+    // Send analysis request to Deepgram (SDK v4 returns { result, error })
+    const { result, error } = text
+      ? await deepgram.read.analyzeText({ text }, options)
+      : await deepgram.read.analyzeUrl({ url: textUrl }, options);
+
+    // Handle SDK errors
+    if (error) {
+      console.error("Deepgram API Error:", error);
+      return new Response(
+        JSON.stringify({
+          error: {
+            type: "processing_error",
+            code: "INVALID_TEXT",
+            message: error.message || "Failed to process text",
+            details: {},
+          },
+        }),
+        { status: 400, headers }
+      );
+    }
+
+    // Return full results object (includes all requested features)
     return new Response(
-      JSON.stringify({ results: response.result }),
+      JSON.stringify({ results: result.results || {} }),
       { status: 200, headers }
     );
   } catch (err) {
