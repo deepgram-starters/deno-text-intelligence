@@ -228,11 +228,21 @@ async function handleAnalysis(req: Request): Promise<Response> {
     // Handle SDK errors
     if (error) {
       console.error("Deepgram API Error:", error);
+      const errorMsg = (error.message || "").toLowerCase();
+
+      // Detect URL-related errors
+      const isUrlError = textUrl && (
+        errorMsg.includes('url') ||
+        errorMsg.includes('unreachable') ||
+        errorMsg.includes('invalid') ||
+        errorMsg.includes('malformed')
+      );
+
       return new Response(
         JSON.stringify({
           error: {
             type: "processing_error",
-            code: "INVALID_TEXT",
+            code: isUrlError ? "INVALID_URL" : "INVALID_TEXT",
             message: error.message || "Failed to process text",
             details: {},
           },
