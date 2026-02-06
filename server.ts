@@ -84,7 +84,7 @@ function getCorsHeaders(): HeadersInit {
   return {
     "Access-Control-Allow-Origin": `http://localhost:${config.frontendPort}`,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type",
+    "Access-Control-Allow-Headers": "Content-Type, X-Request-Id",
     "Access-Control-Allow-Credentials": "true",
   };
 }

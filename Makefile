@@ -1,7 +1,7 @@
 # Deno Text Intelligence Makefile
 # Framework-agnostic commands for managing the project and git submodules
 
-.PHONY: help check check-prereqs init install build start start-backend start-frontend clean status update
+.PHONY: help check check-prereqs init install install-frontend build start start-backend start-frontend clean status update test
 
 # Default target: show help
 help:
@@ -9,8 +9,10 @@ help:
 	@echo "========================================"
 	@echo ""
 	@echo "Setup:"
-	@echo "  make check-prereqs  Check if prerequisites are installed"
-	@echo "  make init           Initialize submodules and cache dependencies"
+	@echo "  make check-prereqs    Check if prerequisites are installed"
+	@echo "  make init             Initialize submodules and cache dependencies"
+	@echo "  make install          Cache Deno dependencies"
+	@echo "  make install-frontend Install frontend dependencies"
 	@echo ""
 	@echo "Development:"
 	@echo "  make start          Start development servers (backend + frontend)"
@@ -32,6 +34,19 @@ check-prereqs:
 	@echo "✓ All prerequisites installed"
 check: check-prereqs
 
+# Install backend dependencies
+install:
+	@echo "==> Caching Deno dependencies..."
+	deno task cache
+
+# Install frontend dependencies (requires submodule to be initialized)
+install-frontend:
+	@echo "==> Installing frontend dependencies..."
+	@if [ ! -d "frontend" ] || [ -z "$$(ls -A frontend)" ]; then \
+		echo "❌ Error: Frontend submodule not initialized. Run 'make init' first."; \
+		exit 1; \
+	fi
+	cd frontend && corepack pnpm install
 
 # Initialize project: clone submodules and cache dependencies
 init:
