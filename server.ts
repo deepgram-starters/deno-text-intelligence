@@ -84,7 +84,7 @@ function getCorsHeaders(): HeadersInit {
   return {
     "Access-Control-Allow-Origin": `http://localhost:${config.frontendPort}`,
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, X-Request-Id",
+    "Access-Control-Allow-Headers": "Content-Type",
     "Access-Control-Allow-Credentials": "true",
   };
 }
@@ -160,15 +160,10 @@ async function handleAnalysis(req: Request): Promise<Response> {
     const body = await req.json();
     const { text, url: textUrl } = body;
 
-    // Echo X-Request-Id header if provided
-    const requestId = req.headers.get("x-request-id");
     const headers: Record<string, string> = {
       "content-type": "application/json",
       ...getCorsHeaders(),
     };
-    if (requestId) {
-      headers["x-request-id"] = requestId;
-    }
 
     // Validate input
     const validationError = validateAnalysisInput(text, textUrl);
