@@ -4,9 +4,10 @@ description = "Get started using Deepgram's Text Intelligence with this Deno dem
 author = "Deepgram DX Team <devrel@deepgram.com> (https://developers.deepgram.com)"
 repository = "https://github.com/deepgram-starters/deno-text-intelligence"
 useCase = "text-intelligence"
-language = "TypeScript"
-framework = "Deno"
+language = "typescript"
+framework = "deno"
 sdk = "4.11.2"
+tags = ["text-intelligence", "text-analysis", "nlp", "natural-language-processing", "typescript", "deno"]
 
 [install.pre]
 command = "git submodule update --init --recursive"
