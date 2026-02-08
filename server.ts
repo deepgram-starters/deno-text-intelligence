@@ -6,11 +6,9 @@
  * modified and extended for your own projects.
  *
  * Key Features:
- * - API endpoint: POST /text-intelligence/analyze
+ * - API endpoint: POST /api/text-intelligence
  * - Accepts text or URL in JSON body
  * - Supports multiple intelligence features: summarization, topics, sentiment, intents
- * - Proxies to Vite dev server in development
- * - Serves static frontend in production
  * - Native TypeScript support
  * - No external web framework needed
  */
@@ -32,13 +30,11 @@ await load({ export: true });
 interface ServerConfig {
   port: number;
   host: string;
-  frontendPort: number;
 }
 
 const config: ServerConfig = {
   port: parseInt(Deno.env.get("PORT") || "8081"),
   host: Deno.env.get("HOST") || "0.0.0.0",
-  frontendPort: parseInt(Deno.env.get("FRONTEND_PORT") || "8080"),
 };
 
 // ============================================================================
@@ -82,10 +78,9 @@ const deepgram = createClient(apiKey);
  */
 function getCorsHeaders(): HeadersInit {
   return {
-    "Access-Control-Allow-Origin": `http://localhost:${config.frontendPort}`,
+    "Access-Control-Allow-Origin": "*",
     "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
     "Access-Control-Allow-Headers": "Content-Type",
-    "Access-Control-Allow-Credentials": "true",
   };
 }
 
@@ -151,7 +146,7 @@ function formatErrorResponse(
 // ============================================================================
 
 /**
- * POST /text-intelligence/analyze
+ * POST /api/text-intelligence
  * Main text intelligence endpoint
  */
 async function handleAnalysis(req: Request): Promise<Response> {
@@ -316,7 +311,7 @@ async function handleRequest(req: Request): Promise<Response> {
   }
 
   // API Routes
-  if (req.method === "POST" && url.pathname === "/text-intelligence/analyze") {
+  if (req.method === "POST" && url.pathname === "/api/text-intelligence") {
     return handleAnalysis(req);
   }
 
@@ -337,8 +332,6 @@ async function handleRequest(req: Request): Promise<Response> {
 
 console.log("\n" + "=".repeat(70));
 console.log(`🚀 Backend API Server running at http://localhost:${config.port}`);
-console.log(`📡 CORS enabled for http://localhost:${config.frontendPort}`);
-console.log(`\n💡 Frontend should be running on http://localhost:${config.frontendPort}`);
 console.log("=".repeat(70) + "\n");
 
 Deno.serve({ port: config.port, hostname: config.host }, handleRequest);

@@ -1,0 +1,25 @@
+:8080 {
+	# API and WebSocket paths proxy to the backend first
+	handle /api/* {
+		reverse_proxy localhost:8081
+	}
+	handle /stt/* {
+		reverse_proxy localhost:8081
+	}
+	handle /tts/* {
+		reverse_proxy localhost:8081
+	}
+	handle /agent/* {
+		reverse_proxy localhost:8081
+	}
+	handle /text-intelligence/* {
+		reverse_proxy localhost:8081
+	}
+
+	# Everything else: serve static files with SPA fallback
+	handle {
+		root * /app/frontend/dist
+		try_files {path} /index.html
+		file_server
+	}
+}
