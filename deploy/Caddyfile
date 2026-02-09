@@ -1,25 +1,22 @@
 :8080 {
-	# API and WebSocket paths proxy to the backend first
-	handle /api/* {
-		reverse_proxy localhost:8081
+	# HTML page served by backend (injects session nonce)
+	@htmlpage {
+		path /
+		path /index.html
 	}
-	handle /stt/* {
-		reverse_proxy localhost:8081
-	}
-	handle /tts/* {
-		reverse_proxy localhost:8081
-	}
-	handle /agent/* {
-		reverse_proxy localhost:8081
-	}
-	handle /text-intelligence/* {
-		reverse_proxy localhost:8081
+	handle @htmlpage {
+		reverse_proxy localhost:{$BACKEND_PORT:8081}
 	}
 
-	# Everything else: serve static files with SPA fallback
+	# API endpoints proxied to backend
+	handle /api/* {
+		reverse_proxy localhost:{$BACKEND_PORT:8081}
+	}
+
+	# Static assets served by Caddy
 	handle {
 		root * /app/frontend/dist
-		try_files {path} /index.html
 		file_server
 	}
 }
+
