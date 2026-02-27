@@ -14,7 +14,7 @@
  * - No external web framework needed
  */
 
-import { createClient } from "@deepgram/sdk";
+import { DeepgramClient } from "@deepgram/sdk";
 import { load } from "dotenv";
 import TOML from "npm:@iarna/toml@2.2.5";
 import * as jose from "jose";
@@ -109,7 +109,7 @@ const apiKey = loadApiKey();
 // SETUP - Initialize Deepgram client
 // ============================================================================
 
-const deepgram = createClient(apiKey);
+const deepgram = new DeepgramClient({ apiKey });
 
 // ============================================================================
 // CORS CONFIGURATION
@@ -298,36 +298,10 @@ async function handleAnalysis(req: Request): Promise<Response> {
     const intents = url.searchParams.get("intents");
     if (intents === "true") options.intents = true;
 
-    // Send analysis request to Deepgram (SDK v4 returns { result, error })
-    const { result, error } = text
-      ? await deepgram.read.analyzeText({ text }, options)
-      : await deepgram.read.analyzeUrl({ url: textUrl }, options);
-
-    // Handle SDK errors
-    if (error) {
-      console.error("Deepgram API Error:", error);
-      const errorMsg = (error.message || "").toLowerCase();
-
-      // Detect URL-related errors
-      const isUrlError = textUrl && (
-        errorMsg.includes('url') ||
-        errorMsg.includes('unreachable') ||
-        errorMsg.includes('invalid') ||
-        errorMsg.includes('malformed')
-      );
-
-      return new Response(
-        JSON.stringify({
-          error: {
-            type: "processing_error",
-            code: isUrlError ? "INVALID_URL" : "INVALID_TEXT",
-            message: error.message || "Failed to process text",
-            details: {},
-          },
-        }),
-        { status: 400, headers }
-      );
-    }
+    // Send analysis request to Deepgram (SDK v5 throws on error)
+    const result = text
+      ? await deepgram.read.v1.text.analyze({ ...options, body: { text } })
+      : await deepgram.read.v1.text.analyze({ ...options, body: { url: textUrl } });
 
     // Return full results object (includes all requested features)
     return new Response(
