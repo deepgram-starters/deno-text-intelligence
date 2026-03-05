@@ -264,6 +264,62 @@ async function handleAnalysis(req: Request): Promise<Response> {
       );
     }
 
+    // If URL provided, validate format and resolve to text content
+    if (textUrl) {
+      try {
+        new URL(textUrl);
+      } catch {
+        return new Response(
+          JSON.stringify({
+            error: {
+              type: "validation_error",
+              code: "INVALID_URL",
+              message: "Invalid URL format",
+              details: {},
+            },
+          }),
+          { status: 400, headers }
+        );
+      }
+    }
+
+    // Resolve text content: fetch from URL if needed
+    let textContent: string;
+
+    if (textUrl) {
+      try {
+        const fetchResponse = await fetch(textUrl);
+        if (!fetchResponse.ok) {
+          return new Response(
+            JSON.stringify({
+              error: {
+                type: "validation_error",
+                code: "INVALID_URL",
+                message: `Failed to fetch URL: ${fetchResponse.statusText}`,
+                details: {},
+              },
+            }),
+            { status: 400, headers }
+          );
+        }
+        textContent = await fetchResponse.text();
+      } catch (e) {
+        return new Response(
+          JSON.stringify({
+            error: {
+              type: "validation_error",
+              code: "INVALID_URL",
+              message: `Failed to fetch URL: ${(e as Error).message}`,
+              details: {},
+            },
+          }),
+          { status: 400, headers }
+        );
+      }
+    } else {
+      textContent = text;
+    }
+
     // Extract query parameters for intelligence features
     const options: Record<string, unknown> = {
       language: url.searchParams.get("language") || "en"
@@ -299,9 +355,7 @@ async function handleAnalysis(req: Request): Promise<Response> {
     if (intents === "true") options.intents = true;
 
     // Send analysis request to Deepgram (SDK v5 throws on error)
-    const result = text
-      ? await deepgram.read.v1.text.analyze({ ...options, body: { text } })
-      : await deepgram.read.v1.text.analyze({ ...options, body: { url: textUrl } });
+    const result = await deepgram.read.v1.text.analyze({ ...options, body: { text: textContent } });
 
     // Return full results object (includes all requested features)
     return new Response(
