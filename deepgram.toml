@@ -6,7 +6,7 @@ repository = "https://github.com/deepgram-starters/deno-text-intelligence"
 useCase = "text-intelligence"
 language = "typescript"
 framework = "deno"
-sdk = "5.7.0"
+sdk = "@deepgram/sdk"
 tags = ["text-intelligence", "text-analysis", "nlp", "natural-language-processing", "typescript", "deno"]
 
 [install.pre]

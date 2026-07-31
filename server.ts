@@ -14,7 +14,7 @@
  * - No external web framework needed
  */
 
-import { DeepgramClient } from "@deepgram/sdk";
+import { DeepgramClient, DeepgramError } from "@deepgram/sdk";
 import { load } from "dotenv";
 import TOML from "npm:@iarna/toml@2.2.5";
 import * as jose from "jose";
@@ -238,10 +238,14 @@ async function checkAuth(req: Request): Promise<Response | null> {
  * Main text intelligence endpoint
  */
 async function handleAnalysis(req: Request): Promise<Response> {
+  // Hoisted so the catch below can classify a Deepgram-side rejection as a
+  // URL- vs text-input error.
+  let text: string | undefined;
+  let textUrl: string | undefined;
   try {
     const url = new URL(req.url);
     const body = await req.json();
-    const { text, url: textUrl } = body;
+    ({ text, url: textUrl } = body);
 
     const headers: Record<string, string> = {
       "content-type": "application/json",
@@ -306,7 +310,8 @@ async function handleAnalysis(req: Request): Promise<Response> {
     // throws on API errors (handled by the surrounding try/catch).
     const analysis = await deepgram.read.v1.text.analyze({
       ...options,
-      body: text ? { text } : { url: textUrl },
+      // validateAnalysisInput guarantees exactly one of text/url is present.
+      body: text ? { text } : { url: textUrl! },
     });
 
     // Return full results object (includes all requested features)
@@ -316,6 +321,18 @@ async function handleAnalysis(req: Request): Promise<Response> {
     );
   } catch (err) {
     console.error("Analysis error:", err);
+    // A Deepgram-side rejection carries an HTTP status. Map a 4xx (bad
+    // text/URL) back to a 400 with URL-vs-text classification, matching the
+    // pre-v5 behavior — otherwise these collapse to a generic 500 /
+    // ANALYSIS_FAILED via formatErrorResponse's default.
+    if (err instanceof DeepgramError && typeof err.statusCode === "number") {
+      const isClientError = err.statusCode >= 400 && err.statusCode < 500;
+      if (isClientError) {
+        const code = textUrl ? "INVALID_URL" : "INVALID_TEXT";
+        return formatErrorResponse(err, 400, code, "validation_error");
+      }
+      return formatErrorResponse(err, err.statusCode);
+    }
     return formatErrorResponse(err as Error);
   }
 }
